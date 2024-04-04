@@ -9,7 +9,7 @@ function model(sequelize) {
         title: { type: DataTypes.STRING, allowNull: false},
         firstName: { type: DataTypes.STRING, allowNull: false},
         lastName: { type: DataTypes.STRING, allowNull: false},
-        acceptTerms: { type: DataType.BOOLEAN },
+        acceptTerms: { type: DataTypes.BOOLEAN },
         role: { type: DataTypes.STRING, allowNull: false},
         verificationToken: { type: DataTypes.STRING},
         verified: { type: DataTypes.DATE},
@@ -27,7 +27,7 @@ function model(sequelize) {
     const options = {
         timestamps: false,
         defaultScope: {
-            attributes: {exclude: ['passwordHas']}
+            attributes: {exclude: ['passwordHash']}
         },
         scopes: {
             withHash: {attributes: {},}

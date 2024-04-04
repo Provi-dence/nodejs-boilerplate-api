@@ -1,27 +1,6 @@
-const jwt = require('express-jwt');
-const { secret } = require('config.json');
-const db = require('_helpers/db');
+const router = require('express').Router();
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
-module.exports = authorize;
-
-function authorize(roles = []) {
-    if(typeof roles === 'string'){
-        roles = [roles];
-    }
-
-    return [
-        jwt({ secret, algorithm: ['HS256']}),
-
-        async (req, res, next) => {
-            const account = await db.Account.findByPk(req.user.id);
-
-            if(!account || (roles.length && !roles.includes(account.role))) {
-                return res.status(401).json({message: 'Unauthorized' });
-            }
-
-            req.user.role = account.role;
-            const RefreshToken = await account.getRefreshTokens();
-            req.user.ownsToken = token => !!RefreshToken.find(x =)
-        }
-    ]
-}
+router.use('/api-docs', swaggerUi.serve);
+router.get('/api-docs', swaggerUi.setup(swaggerDocument));

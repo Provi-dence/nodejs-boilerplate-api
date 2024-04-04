@@ -1,0 +1,22 @@
+{
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "user": "root",
+        "password": "",
+        "database": "NODE-BOILERPLATE-API"
+    },
+    "secret": "thisismysecretkey",
+    "emailFrom": "info@node-boilerplate-api.com",
+
+    "smtpOptions": {
+        "host": "smtp.ethereal.email",
+        "port": 587,
+        "auth": {
+            "user": "keely.lebsack@ethereal.email",
+            "pass": "ECCdTNEeuP3cgaSsT2"
+        }
+    }
+    
+    
+}

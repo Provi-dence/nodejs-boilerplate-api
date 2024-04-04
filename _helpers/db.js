@@ -7,7 +7,6 @@ module.exports = db = {};
 initialize();
 
 
-
 async function initialize() {
     
     const { host, port, user, password, database } = config.database;

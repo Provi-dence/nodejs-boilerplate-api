@@ -6,7 +6,7 @@ function model (sequelize) {
     const attributes = {
         token: { type: DataTypes.STRING},
         expires: { type: DataTypes.DATE},
-        created: {type: DataTypes.Date, allowNull: false, defaultValue: DataTypes.NOW},
+        created: {type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW},
         createByIp: { type: DataTypes.STRING},
         revoked: { type: DataTypes.DATE},
         revokedByIp: { type: DataTypes.STRING},
