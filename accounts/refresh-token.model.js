@@ -11,9 +11,10 @@ function model (sequelize) {
         revoked: { type: DataTypes.DATE},
         revokedByIp: { type: DataTypes.STRING},
         replacedByToken: { type: DataTypes.STRING},
+        
         isExpired:{
-            tpye: DataTypes.VIRTUAL,
-            get() { return Date.now() >= this.expires;}
+            type: DataTypes.VIRTUAL,
+            get() { return Date.now() >= this.expires; }
         
         },
 

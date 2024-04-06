@@ -1,11 +1,11 @@
-const config = require('config.json');
+const config = require('../config.json');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
-const sendEmail = require('_helpers/send-email');
-const db = require('_helpers/db');
-const role = require('_helpers/role');
+const sendEmail = require('../_helpers/send-email');
+const db = require('../_helpers/db');
+const Role = require('../_helpers/role');
 
 module.exports = {
     authenticate,
@@ -83,9 +83,10 @@ async function register(params, origin) {
 
     }
 
-    const account = new db.account(params);
+    const account = new db.Account(params);
 
     const isFirstAccount = (await db.Account.count()) === 0;
+
     account.role = isFirstAccount ? Role.Admin : Role.User;
     account.verifiacationToken = randomTokenString();
 
