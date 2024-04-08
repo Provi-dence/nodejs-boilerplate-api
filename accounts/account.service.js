@@ -6,6 +6,7 @@ const { Op } = require('sequelize');
 const sendEmail = require('../_helpers/send-email');
 const db = require('../_helpers/db');
 const Role = require('../_helpers/role');
+const model = require('./account.model');
 
 module.exports = {
     authenticate,
@@ -23,35 +24,43 @@ module.exports = {
     delete: _delete
 };
 
+async function authenticate({ email, password, ipAddress }) {
+    try {
+        const account = await db.Account.scope('withHash').findOne({ where: { email } });
 
-async function authenticate({email, password, ipAddress }) {
-    const account = await db.Account.scope('withHash').findOne ({ where: {email}});
+        if (!account || !account.isVerified || !(await bcrypt.compare(password, account.passwordHash))) {
+            throw new Error('Email or password is incorrect');
+        }
 
-    if (!account || !account.isVerified || !(await bcrypt.compare (password, account.passwordHash))) {
-        throw 'Email or password is incorrect';
+        const jwtToken = generateJwtToken(account);
+        const refreshToken = generateRefreshToken(account, ipAddress);
 
+        console.log('This is jwToken: ' + jwtToken);
+
+        await refreshToken.save();
+
+        const userDetails = basicDetails(account);
+        console.log('User authenticated:', userDetails); // Debug log
+
+        return {
+            ...userDetails,
+            jwtToken,
+            refreshToken: refreshToken.token
+        };
+    } catch (error) {
+        console.error('Authentication error:', error); // Error log
+        throw error; // Re-throw the error for external handling
     }
-
-    const jwtToken = generateJwtToken (account);
-    const refreshToken = generateRefreshToken(account, ipAddress);
-
-    await refreshToken.save();
-
-    return {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: refreshToken.token
-    };
-
 }
+
 
 
 async function refreshToken({ token, ipAddress}) {
     const refreshToken = await getRefreshToken(token);
-    const account = await refreshToken.GetAccount();
+    const account = await refreshToken.getAccount();
 
     const newRefreshToken = generateRefreshToken(account, ipAddress);
-    refreshToken.revoked = Date.not();
+    refreshToken.revoked = Date.now();
     refreshToken.revokedByIp = ipAddress;
     refreshToken.replacedByToken = newRefreshToken.token;
     await refreshToken.save();
@@ -88,7 +97,7 @@ async function register(params, origin) {
     const isFirstAccount = (await db.Account.count()) === 0;
 
     account.role = isFirstAccount ? Role.Admin : Role.User;
-    account.verifiacationToken = randomTokenString();
+    account.verificationToken = randomTokenString();
 
     account.passwordHash = await hash(params.password);
 
@@ -116,29 +125,8 @@ async function verifyEmail({token}) {
     account.resetTokenExpires= new Date(Date.now() + 24*60*60*1000);
     await account.save();
     // send email
-    await sendPasswordResetEmail (account, origin);
+    await sendPasswordResetEmail(account, origin);
   }
-  
-  async function verifyEmail ( { token } ) {
-    const account = await db.Account.findOne ( { where : { verificationToken : token } } ) ;
-    if ( ! account ) throw ' Verification failed ' ;
-    account.verified = Date.now() ;
-    account.verificationToken = null ;
-    await account.save () ;
-  }
-  
-  async function forgotPassword ( { email } , origin ) {
-    const account = await db.Account.findOne ( { where : { email } } ) ;
-    // always return ok response to prevent email enumeration
-    if ( ! account ) return ;
-    // create reset token that expires after 24 hours
-    account.resetToken = randomTokenString () ;
-    account.resetTokenExpires = new Date ( Date.now () + 24 * 60 * 60 * 1000 ) ;
-    await account.save () ;
-    // send email
-    await sendPasswordResetEmail ( account , origin ) ;
-  }
-
 
 
   async function validateResetToken({ token }) {
@@ -159,6 +147,7 @@ async function verifyEmail({token}) {
     account.resetToken = null;
     await account.save();
   }
+
   async function getAll() {
     const accounts = await db.Account.findAll();
     return accounts.map(x => basicDetails(x));
@@ -238,19 +227,28 @@ function generateJwtToken(account){
     return jwt.sign({ sub: account.id, id: account.id}, config.secret, { expiresIn: '15m' });
 }
 
+async function generateRefreshToken(account, ipAddress) {
+    try {
+        const refreshToken = await db.RefreshToken.create({
+            accountId: account.id,
+            token: randomTokenString(),
+            expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            createdByIp: ipAddress
+        });
 
-function generateRefreshToken(account, ipAddress){
-    //create a refresh token that expires in 7 days
-    return db.RefreshToken.create({
-        accountId: account.id,
-        token: randomTokenString(),
-        expires: new Date(Date.now() + 7*24*60*60*1000),
-        createdByIp: ipAddress
-    });
+        //console.log(refreshToken);
+        return refreshToken;
+    } catch (error) {
+        console.error('Error generating refresh token:', error);
+        throw error;
+    }
 }
 
+
 function randomTokenString(){
-    return crypto.randomBytes(40).toString('hex');
+    const token = crypto.randomBytes(40).toString('hex');
+    console.log('Generated Token:', token);
+    return token;
 }
 
 function basicDetails(account){
